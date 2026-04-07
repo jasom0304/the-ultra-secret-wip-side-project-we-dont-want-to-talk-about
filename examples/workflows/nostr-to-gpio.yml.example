@@ -1,0 +1,63 @@
+# Workflow: Contrôle GPIO via Nostr DM
+#
+# Usage:
+#   - Envoyer "gpio:green" → LED verte allumée 10 secondes
+#   - Envoyer "gpio:red"   → LED rouge clignote 2Hz pendant 10 secondes
+#   - Envoyer "gpio:servo" → Servo 0°→180°, maintient 5s, retour 0°
+#
+# Installation:
+#   1. Copier ce fichier: cp examples/workflows/nostr-to-gpio.yml config/workflows/
+#   2. Activer pigpiod: sudo systemctl enable pigpiod && sudo systemctl start pigpiod
+#   3. Redémarrer PipeliNostr
+#
+# Câblage Raspberry Pi (numérotation BCM):
+#   - LED verte: GPIO17 (pin physique 11) → résistance 220Ω → GND
+#   - LED rouge: GPIO27 (pin physique 13) → résistance 220Ω → GND
+#
+# Correspondance GPIO BCM ↔ Pin Physique:
+#   GPIO17 = Pin 11
+#   GPIO27 = Pin 13
+#   GPIO18 = Pin 12 (pour servo)
+#   GND    = Pin 6, 9, 14, 20, 25, 30, 34, 39
+
+id: nostr-to-gpio
+name: GPIO LED Control
+enabled: true
+
+trigger:
+  type: nostr_event
+  filters:
+    kinds: [4]
+    from_whitelist: true
+    content_pattern: "^gpio:(?<color>green|red|servo)$"
+
+actions:
+  # LED Verte - Allumée pendant 10 secondes
+  - id: green_led
+    type: gpio
+    when: "match.color == 'green'"
+    config:
+      pin: 17            # GPIO17 = Pin physique 11
+      action: pulse
+      duration: 10000    # 10 secondes
+
+  # LED Rouge - Clignotement 2Hz pendant 10 secondes
+  - id: red_led
+    type: gpio
+    when: "match.color == 'red'"
+    config:
+      pin: 27            # GPIO27 = Pin physique 13
+      action: blink
+      frequency: 2       # 2 clignotements par seconde
+      duration: 10000    # 10 secondes
+
+  # Servo - Mouvement aller-retour
+  - id: servo_move
+    type: gpio
+    when: "match.color == 'servo'"
+    config:
+      pin: 18            # GPIO18 = Pin physique 12
+      action: servo
+      angle: 180         # Position finale (2500µs)
+      duration: 5000     # Maintenir 5 secondes
+      return_angle: 0    # Retour position initiale (500µs)

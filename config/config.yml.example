@@ -1,0 +1,135 @@
+# PipeliNostr - Configuration principale
+pipelinostr:
+  name: "Mon PipeliNostr"
+  version: "0.1.0"
+
+# Identite Nostr du bot
+nostr:
+  private_key: ${NOSTR_PRIVATE_KEY}
+  # Format DM par defaut: "nip04" (legacy) ou "nip17" (nouveau standard)
+  # NIP-04: kind 4, supporte par tous les clients
+  # NIP-17: kind 14 wrapped dans kind 1059 (Gift Wrap), meilleure confidentialite
+  # Utilise pour les triggers non-DM (zaps, API, etc.)
+  dm_format: "nip04"
+  # Si true, repond aux DMs dans le meme format que le message recu
+  # Ex: si on recoit un DM NIP-17, on repond en NIP-17
+  # Utile pour compatibilite avec clients comme Primal (NIP-04) et Amethyst (NIP-17)
+  dm_reply_match_format: true
+  # Surveiller les zaps pour d'autres npubs (en plus de la npub du bot)
+  # zapRecipients:
+  #   - "npub1..."
+
+# Whitelist des npub autorisees
+whitelist:
+  enabled: true
+  npubs:
+    - "npub1..."  # Remplacez par vos npubs
+
+# Gestion des relays
+relays:
+  primary:
+    - "wss://relay.damus.io"
+    - "wss://nos.lol"
+    - "wss://relay.nostr.band"
+
+  blacklist: []
+
+  # Decouverte automatique de relays via nostr.watch
+  discovery:
+    enabled: false                # true = auto, false = manuel
+    sources:
+      - "https://api.nostr.watch/v1/online"
+    max_relays: 10                # Nombre max de relays a ajouter
+    refresh_interval: 3600        # Intervalle en secondes (1h par defaut)
+
+  quarantine:
+    enabled: true
+    thresholds:
+      - failures: 1
+        duration: "15m"
+      - failures: 2
+        duration: "2h"
+      - failures: 3
+        duration: "6h"
+      - failures: 4
+        duration: "24h"
+      - failures: 5
+        duration: "2d"
+    max_quarantine_duration: "6M"
+    health_check_interval: "30d"
+
+# API entrante
+api:
+  enabled: true
+  port: 3000
+  host: "127.0.0.1"
+  rate_limit:
+    enabled: true
+    window_ms: 60000
+    max_requests: 100
+
+# Base de donnees
+database:
+  path: "./data/pipelinostr.db"
+
+# Logging
+logging:
+  level: "info"
+  files:
+    general: "./logs/general.log"
+    events: "./logs/events.log"
+    workflows: "./logs/workflows.log"
+    relays: "./logs/relays.log"
+  rotation:
+    max_size: "10M"
+    max_files: 5
+
+# Retry global
+retry:
+  max_attempts: 5
+  backoff:
+    type: "exponential"
+    initial_delay_ms: 1000
+    multiplier: 2
+    max_delay_ms: 60000
+
+# Queue d'evenements
+# Permet de mettre en file d'attente les evenements pour fiabilite et replay
+queue:
+  enabled: true                 # true = active la queue (recommande), false = traitement direct
+  poll_interval_ms: 1000        # Intervalle de polling (ms)
+  concurrency: 1                # Evenements traites en parallele
+  stuck_timeout_minutes: 10     # Reset des evenements bloques
+  cleanup_days: 7               # Conservation des evenements completes
+  cleanup_interval: 100         # Nettoyage tous les N cycles
+
+# Configuration des workflows
+workflows:
+  # Notification d'erreur automatique
+  # Envoie un DM a l'expediteur quand un workflow echoue
+  error_notification:
+    enabled: true               # true = envoie un DM en cas d'erreur
+    dm_triggers_only: true      # true = seulement si le trigger est un DM (kind 4/1059)
+
+# Affichage LCD I2C 20x4 (optionnel, Raspberry Pi uniquement)
+# Affiche le status des workflows en temps reel
+# Prerequis: sudo apt install i2c-tools && sudo raspi-config (activer I2C)
+lcd:
+  enabled: false                # true = active l'affichage LCD
+  i2c_bus: 1                    # Bus I2C (1 sur la plupart des Raspberry Pi)
+  i2c_address: 0x27             # Adresse I2C du LCD (0x27 ou 0x3F selon module)
+  # Mapping npub -> nom d'affichage (optionnel)
+  # npub_names:
+  #   "npub1abc...": "Alice"
+  #   "npub1xyz...": "Bob"
+
+# Morse Code Listener (optionnel, Linux uniquement)
+# Ecoute le microphone pour decoder du code Morse
+# Prerequis: carte son USB + microphone
+# Verifier le peripherique: arecord -l
+morse_listener:
+  enabled: false                # true = active l'ecoute Morse
+  device: "plughw:3,0"          # Peripherique ALSA (verifier avec: arecord -l)
+  frequency: 800                # Frequence de tonalite a detecter (Hz)
+  threshold: 0.3                # Sensibilite de detection (0-1, plus bas = plus sensible)
+  sample_rate: 44100            # Taux d'echantillonnage audio

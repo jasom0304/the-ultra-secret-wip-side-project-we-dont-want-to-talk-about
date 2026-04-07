@@ -1,0 +1,83 @@
+# Workflow: DM to Voice Telegram
+# Convert Nostr DM to audio and send via Telegram bot
+#
+# Command: "Send vocal to TG: your message here"
+#
+# Prerequisites:
+# 1. espeak-ng installed: sudo apt install espeak-ng
+# 2. Telegram bot created via @BotFather
+# 3. config/handlers/telegram.yml configured with bot_token
+# 4. config/handlers/tts.yml configured (copy from tts.yml.example)
+#
+# Telegram setup:
+# 1. Create bot with @BotFather, get token
+# 2. Add bot to your group (or start a private chat)
+# 3. Get chat_id: https://api.telegram.org/bot<TOKEN>/getUpdates
+#    (send a message in the group/chat first, then check the response)
+#
+# Environment variables (or config files):
+#   TELEGRAM_BOT_TOKEN - Your Telegram bot token
+#   TELEGRAM_CHAT_ID - Target chat/group ID
+
+id: dm-to-voice-telegram
+name: DM to Voice Telegram
+description: Convert DM to audio and send to Telegram
+enabled: false  # Enable after configuring Telegram and TTS
+
+trigger:
+  type: nostr_event
+  filters:
+    kinds: [4, 1059]
+    from_whitelist: true
+    content_pattern: "^Send vocal to TG:\\s*(?<message>.+)$"
+
+actions:
+  # 1. Convert text to speech
+  - id: generate_audio
+    type: tts
+    config:
+      text: "{{ match.message }}"
+      # voice: fr (uses config default, or override here)
+      format: wav  # espeak outputs WAV directly
+
+  # 2. Send voice message to Telegram
+  - id: send_to_telegram
+    type: telegram
+    when: "actions.generate_audio.success"
+    config:
+      action: voice
+      # chat_id uses default_chat_id from config/handlers/telegram.yml
+      voice_file: "{{ actions.generate_audio.response.file_path }}"
+      caption: "Message vocal de {{ trigger.from }}"
+
+  # 3. Confirm success to user
+  - id: confirm_success
+    type: nostr_dm
+    when: "actions.send_to_telegram.success"
+    config:
+      to: "{{ trigger.from }}"
+      content: |
+        Message vocal envoye sur Telegram!
+
+  # 4. Notify on TTS failure
+  - id: notify_tts_failure
+    type: nostr_dm
+    when: "!actions.generate_audio.success"
+    config:
+      to: "{{ trigger.from }}"
+      content: |
+        Erreur TTS: {{ actions.generate_audio.error }}
+        Verifiez que espeak-ng est installe.
+
+  # 5. Notify on Telegram failure
+  - id: notify_telegram_failure
+    type: nostr_dm
+    when: "actions.generate_audio.success && !actions.send_to_telegram.success"
+    config:
+      to: "{{ trigger.from }}"
+      content: |
+        Erreur Telegram: {{ actions.send_to_telegram.error }}
+        Verifiez la configuration du bot.
+
+# espeak voices: fr, en, de, es, it, pt, ru, zh, ja, ko
+# For higher quality, use Piper TTS (pip install piper-tts)

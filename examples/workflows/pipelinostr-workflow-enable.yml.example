@@ -1,0 +1,36 @@
+# PipeliNostr Workflow Enable Command
+#
+# Usage: /pipelinostr workflow enable <workflow_id>
+# Enables a workflow by setting enabled: true in its YAML file.
+#
+# IMPORTANT: Review the workflow content before enabling!
+# Imported workflows should be checked for security.
+
+id: pipelinostr-workflow-enable
+name: PipeliNostr Workflow Enable
+enabled: true
+
+trigger:
+  type: nostr_event
+  filters:
+    kinds: [4]
+    from_whitelist: true
+    content_pattern: "^/pipelinostr\\s+workflow\\s+enable\\s+(\\S+)"
+
+actions:
+  - id: enable
+    type: system
+    action: workflow_enable
+    workflow_id: "{{ match.$1 }}"
+
+  - id: reply_success
+    type: nostr_dm
+    when: "{{ actions.enable.success }}"
+    to: "{{ trigger.from }}"
+    content: "{{ actions.enable.response.formatted }}"
+
+  - id: reply_error
+    type: nostr_dm
+    when: "{{ not actions.enable.success }}"
+    to: "{{ trigger.from }}"
+    content: "Error: {{ actions.enable.error }}"

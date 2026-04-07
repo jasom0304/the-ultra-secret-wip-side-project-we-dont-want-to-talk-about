@@ -1,0 +1,34 @@
+# ClaudeDM Bad Request Response
+#
+# Called when the user's request fails validation:
+# - Message too long (exceeds max_request_length)
+# - Contains forbidden words
+#
+# Triggered by on_fail hook from claudeDM-balance-gate (validation failed)
+# User is NOT debited in case of validation error.
+#
+# Note: This workflow is a placeholder for future validation logic.
+# Currently, message length is validated by the regex pattern in balance-gate.
+
+id: claudeDM-bad-request
+name: ClaudeDM - Bad Request
+enabled: false
+
+trigger:
+  type: hook
+  source_workflow: claudeDM-balance-gate
+
+actions:
+  - id: reply
+    type: nostr_dm
+    config:
+      to: "{{ trigger.from }}"
+      content: |
+        Requete invalide.
+
+        Limites:
+        - Max 4000 caracteres
+        - Certains mots sont interdits
+
+        Reformulez votre question et reessayez.
+        Votre solde n'a pas ete debite.

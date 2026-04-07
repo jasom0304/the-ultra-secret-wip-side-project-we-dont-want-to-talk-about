@@ -1,0 +1,30 @@
+# Workflow: /wallet address x y
+# Affiche les adresses Bitcoin et leurs soldes
+#
+# Usage: /wallet address 0 5
+#        Affiche les adresses 0 a 4 avec soldes
+
+id: wallet-address
+name: Bitcoin Wallet - Show Addresses
+enabled: false
+
+trigger:
+  type: nostr_event
+  filters:
+    kinds: [4, 1059]
+    content_pattern: "^/wallet address (\\d+)\\s+(\\d+)$"
+    from_whitelist: true
+
+actions:
+  - id: get_addresses
+    type: wallet
+    config:
+      action: get_addresses
+      start_index: "{{ match.$1 }}"
+      count: "{{ match.$2 }}"
+
+  - id: reply
+    type: nostr_dm
+    config:
+      to: "{{ trigger.from }}"
+      content: "{{ actions.get_addresses.response.formatted }}"

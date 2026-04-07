@@ -1,0 +1,144 @@
+# Morse Audio to Telegram - Generate and send Morse audio without hardware
+#
+# Converts text from Nostr DM to Morse code audio and sends it to Telegram.
+# No GPIO/buzzer required - works on any machine.
+# Long messages are automatically split into chunks of ~100 chars.
+#
+# Command format:
+#   morse:tg: <text>
+#   morse:tg:slow: <text>    (slower speed)
+#   morse:tg:fast: <text>    (faster speed)
+#
+# Examples:
+#   morse:tg: SOS
+#   morse:tg: Hello World
+#   morse:tg:slow: CQ CQ CQ
+#   morse:tg: Long text will be split into multiple audio messages automatically
+#
+# Prerequisites:
+#   - Telegram bot configured (config/handlers/telegram.yml)
+#   - ffmpeg installed (for OGG conversion, optional - falls back to WAV)
+#
+# Morse timing at default speed (100ms unit = ~12 WPM):
+#   - Dot: 100ms
+#   - Dash: 300ms
+#   - Letter gap: 300ms
+#   - Word gap: 700ms
+
+id: morse-to-telegram
+name: Morse Audio to Telegram
+description: Generate Morse code audio and send to Telegram (no hardware required)
+enabled: true
+
+trigger:
+  type: nostr_event
+  filters:
+    kinds: [4, 1059]
+    from_whitelist: true
+    content_pattern: "^morse:tg:(?:(?<speed>slow|fast):)?\\s*(?<text>.+)$"
+
+actions:
+  # ============================================
+  # STANDARD SPEED (~12 WPM)
+  # ============================================
+
+  # Generate audio file(s)
+  - id: generate_audio_normal
+    type: morse_audio
+    when: "!match.speed"
+    config:
+      text: "{{ match.text }}"
+      unit_ms: 100
+      frequency: 700
+      format: ogg
+
+  # Send audio to Telegram (supports multiple files)
+  - id: send_telegram_normal
+    type: telegram
+    when: "!match.speed && actions.generate_audio_normal.success"
+    config:
+      action: voice
+      voice_files: "{{ actions.generate_audio_normal.response.files }}"
+
+  # Confirmation DM
+  - id: confirm_normal
+    type: nostr_dm
+    when: "!match.speed"
+    config:
+      to: "{{ trigger.from }}"
+      content: |
+        Morse envoyé sur Telegram (~12 WPM): "{{ match.text }}"
+
+        {{ actions.generate_audio_normal.response.morse }}
+
+        ({{ actions.generate_audio_normal.response.total_chunks }} partie(s))
+
+  # ============================================
+  # SLOW SPEED (~6 WPM)
+  # ============================================
+
+  # Generate audio file(s)
+  - id: generate_audio_slow
+    type: morse_audio
+    when: "match.speed === 'slow'"
+    config:
+      text: "{{ match.text }}"
+      unit_ms: 200
+      frequency: 700
+      format: ogg
+
+  # Send audio to Telegram (supports multiple files)
+  - id: send_telegram_slow
+    type: telegram
+    when: "match.speed === 'slow' && actions.generate_audio_slow.success"
+    config:
+      action: voice
+      voice_files: "{{ actions.generate_audio_slow.response.files }}"
+
+  # Confirmation DM
+  - id: confirm_slow
+    type: nostr_dm
+    when: "match.speed === 'slow'"
+    config:
+      to: "{{ trigger.from }}"
+      content: |
+        Morse lent envoyé sur Telegram (~6 WPM): "{{ match.text }}"
+
+        {{ actions.generate_audio_slow.response.morse }}
+
+        ({{ actions.generate_audio_slow.response.total_chunks }} partie(s))
+
+  # ============================================
+  # FAST SPEED (~20 WPM)
+  # ============================================
+
+  # Generate audio file(s)
+  - id: generate_audio_fast
+    type: morse_audio
+    when: "match.speed === 'fast'"
+    config:
+      text: "{{ match.text }}"
+      unit_ms: 60
+      frequency: 700
+      format: ogg
+
+  # Send audio to Telegram (supports multiple files)
+  - id: send_telegram_fast
+    type: telegram
+    when: "match.speed === 'fast' && actions.generate_audio_fast.success"
+    config:
+      action: voice
+      voice_files: "{{ actions.generate_audio_fast.response.files }}"
+
+  # Confirmation DM
+  - id: confirm_fast
+    type: nostr_dm
+    when: "match.speed === 'fast'"
+    config:
+      to: "{{ trigger.from }}"
+      content: |
+        Morse rapide envoyé sur Telegram (~20 WPM): "{{ match.text }}"
+
+        {{ actions.generate_audio_fast.response.morse }}
+
+        ({{ actions.generate_audio_fast.response.total_chunks }} partie(s))

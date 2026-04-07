@@ -1,0 +1,160 @@
+# Workflow: Zap to GPIO Dispenser with Warning Signal
+# Declenche un gyrophare puis un distributeur via GPIO sur reception d'un zap
+# Envoie un ticket de caisse ASCII en DM
+#
+# Sequence:
+#   1. Gyrophare s'allume (signal d'avertissement)
+#   2. Attente X secondes (suspense)
+#   3. Moteur s'allume (versement) - gyrophare toujours allume
+#   4. Moteur s'eteint apres Y secondes
+#   5. Attente Z secondes (gyrophare toujours allume)
+#   6. Gyrophare s'eteint
+#
+# Cablage:
+#   - Gyrophare: GPIO 18 (pin 12) -> transistor NPN -> gyrophare 5V
+#   - Moteur:    GPIO 17 (pin 11) -> transistor NPN -> moteur 5V
+#   - Voir zap-to-gpio-dispenser.yml.example pour le schema de cablage
+#
+# Prerequis:
+#   - sudo apt install pigpio && sudo systemctl enable pigpiod
+#   - Handler GPIO active dans config/handlers/gpio.yml
+#
+# Multi-bouteilles:
+#   - Utiliser zap_event_id pour filtrer sur une note specifique
+#   - Chaque bouteille = une note = un workflow avec son zap_event_id
+#   - Le gyrophare est commun a toutes les bouteilles (meme pin)
+
+id: zap-to-gpio-dispenser-with-warning-signal
+name: Zap to GPIO Dispenser with Warning Signal
+enabled: false
+description: Gyrophare + distributeur GPIO sur reception d'un zap
+
+# Variables configurables
+variables:
+  # Affichage ticket
+  bar_name: "PIPELINOSTR BAR"
+
+  # Produit
+  product_name: "1 verre de vin rouge"
+  product_volume: "12.5 cL"
+  product_price: 21          # Seuil en sats = prix TTC
+  product_vat: 20            # TVA produit en %
+
+  # Pourboire
+  tip_vat: 0                 # TVA pourboire en %
+
+  # Mention si TVA a 0% (ex: auto-entrepreneur)
+  vat_exemption_text: "TVA non applicable - Art. 293B du CGI"
+
+  # GPIO
+  gpio_warning: 18       # Pin GPIO du gyrophare (BCM)
+  gpio_motor: 17         # Pin GPIO du moteur (BCM)
+  delay_before: 3000     # Delai avant versement (ms) - suspense!
+  pour_duration: 2000    # Duree du versement (ms)
+  delay_after: 2000      # Delai apres versement, gyrophare encore allume (ms)
+
+trigger:
+  type: zap
+  filters:
+    # Npubs autorisees a recevoir des zaps pour ce workflow
+    zap_recipients:
+      - "npub1..."     # Remplacer par ta npub
+    # Optionnel: ne declencher que pour les zaps sur une note specifique
+    # Utile pour multi-bouteilles: chaque note = une bouteille
+    # zap_event_id: "note1..."  # ou ID hex
+    #
+    # Note: pas de zap_min_amount ici, le seuil est gere par product_price
+    # dans les conditions 'when' des actions (permet d'accepter les dons)
+
+actions:
+  # Notification de reception
+  - id: notify
+    type: nostr_dm
+    config:
+      to: "{{ trigger.zap.sender }}"
+      content: |
+        Zap de {{ trigger.zap.amount }} sats recu ! Distribution en cours...
+
+  # Sequence GPIO: gyrophare -> attente -> moteur -> attente -> extinction
+  # Seulement si le montant >= prix du produit
+  - id: dispense_sequence
+    type: gpio
+    when: "{{ gte trigger.zap.amount variables.product_price }}"
+    config:
+      pin: 0
+      action: set
+      sequence:
+        # 1. Gyrophare ON
+        - { pin: "{{ variables.gpio_warning }}", action: set }
+        # 2. Attente avant versement (suspense)
+        - { delay: "{{ variables.delay_before }}" }
+        # 3. Moteur ON pendant X ms (versement)
+        - { pin: "{{ variables.gpio_motor }}", action: pulse, duration: "{{ variables.pour_duration }}" }
+        # 4. Attente apres versement (gyrophare toujours allume)
+        - { delay: "{{ variables.delay_after }}" }
+        # 5. Gyrophare OFF
+        - { pin: "{{ variables.gpio_warning }}", action: clear }
+
+  # Ticket de caisse - montant suffisant
+  - id: receipt_ok
+    type: nostr_dm
+    when: "{{ gte trigger.zap.amount variables.product_price }}"
+    config:
+      to: "{{ trigger.zap.sender }}"
+      content: |
+        ----------------------------
+            {{ variables.bar_name }}
+        ----------------------------
+        Date: {{ date trigger.timestamp }}
+
+        ----------------------------
+        ARTICLE                SATS
+        ----------------------------
+        {{ variables.product_name }}
+        ({{ variables.product_volume }}){{ pad_left variables.product_price 17 }}
+          TVA {{ variables.product_vat }}%: {{ format_sats (divide (multiply variables.product_price variables.product_vat) (add 100 variables.product_vat)) }}
+        {{#if (gt trigger.zap.amount variables.product_price) }}
+
+        Pourboire{{ pad_left (subtract trigger.zap.amount variables.product_price) 19 }}
+          TVA {{ variables.tip_vat }}%: {{ format_sats (divide (multiply (subtract trigger.zap.amount variables.product_price) variables.tip_vat) (add 100 variables.tip_vat)) }}
+        {{/if}}
+
+        ----------------------------
+        TOTAL TTC{{ pad_left trigger.zap.amount 19 }}
+          dont TVA: {{ format_sats (add (divide (multiply variables.product_price variables.product_vat) (add 100 variables.product_vat)) (divide (multiply (subtract trigger.zap.amount variables.product_price) variables.tip_vat) (add 100 variables.tip_vat))) }}
+        ----------------------------
+
+        Paiement: Zap Lightning
+        {{#if (gt trigger.zap.amount variables.product_price) }}
+        Merci pour le pourboire !
+        {{else}}
+        Merci et a bientot !
+        {{/if}}
+        {{#if (eq variables.product_vat 0) }}
+
+        {{ variables.vat_exemption_text }}
+        {{/if}}
+
+  # Ticket de caisse - montant insuffisant (don sans distribution)
+  - id: receipt_insufficient
+    type: nostr_dm
+    when: "{{ lt trigger.zap.amount variables.product_price }}"
+    config:
+      to: "{{ trigger.zap.sender }}"
+      content: |
+        ----------------------------
+            {{ variables.bar_name }}
+        ----------------------------
+        Date: {{ date trigger.timestamp }}
+
+        ----------------------------
+        Don recu: {{ trigger.zap.amount }} sats
+        Merci pour votre generosite !
+
+        Seuil: {{ variables.product_price }} sats
+        Manque: {{ subtract variables.product_price trigger.zap.amount }} sats
+        ----------------------------
+
+        Aucune distribution.
+        Zappez a nouveau pour
+        completer votre commande !

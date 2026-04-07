@@ -1,0 +1,35 @@
+# Zap Balance Tracker Notification
+#
+# Sends a DM to the zap sender confirming their balance was credited.
+# Called via on_complete hook from zap-balance-tracker.
+#
+# Gets current balance directly from DB (more robust than parent.actions)
+
+id: zap-balance-tracker-notification
+name: Zap Balance Notification
+enabled: false
+
+# No trigger - called via hook only
+trigger:
+  type: hook
+
+actions:
+  # Get current balance directly
+  - id: get_balance
+    type: workflow_db
+    config:
+      action: get
+      namespace: balances
+      key: "balance:{{ trigger.zap.sender }}"
+
+  - id: send_notification
+    type: nostr_dm
+    config:
+      to: "{{ trigger.zap.sender }}"
+      content: |
+        Vous avez fait un zap de {{ trigger.zap.amount }} SATs.
+
+        Votre solde a ete credite!
+        Nouveau solde: {{ actions.get_balance.response.value }} SATs
+
+        Merci pour votre soutien!
