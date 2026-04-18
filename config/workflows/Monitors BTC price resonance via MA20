@@ -1,0 +1,29 @@
+description: "Monitors BTC price resonance via MA20"
+
+# Trigger Mechanisms: Combines scheduled checks and real-time monitoring
+triggers:
+  - type: "cron"
+    pattern: "*/1 * * * *" # Triggers every minute for scheduled trend analysis
+  - type: "nostr"
+    kinds: [1] # Monitors NIP-01 Kind 1 events
+    mentions: true # Only processes events that explicitly mention the bot
+
+# Data Pipeline: Defines how information is processed and routed
+pipeline:
+  - handler: "btc-resonance-analyzer" # Executes custom TypeScript logic for MA20 analysis
+
+  # Case A: Handle interactive queries triggered by Nostr mentions
+  - handler: "nostr-reply"
+    condition: "{{trigger.type == 'nostr'}}"
+    params:
+      content: "BTC Resonance Analysis\nScore: {{data.resonanceScore}}/4\nStatus: {{data.status}}\n[Manual Query Success]"
+
+  # Case B: Handle automated periodic broadcasts triggered by cron
+  - handler: "nostr-broadcast"
+    condition: "{{trigger.type == 'cron'}}"
+    params:
+      kind: 1
+      content: "Periodic Resonance Report\nScore: {{data.resonanceScore}}/4\nStatus: {{data.status}}"
+      tags:
+        - ["t", "btc-resonance"] # Used for event categorization and filtering
+        - ["data", "{{data.rawJson}}"] # Encapsulates structured data for ESP32 hardware parsing
