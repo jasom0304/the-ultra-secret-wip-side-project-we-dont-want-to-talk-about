@@ -187,7 +187,7 @@ export class MysqlHandler implements Handler {
 
     const sql = `DELETE FROM ${this.escapeIdentifier(table)} WHERE ${whereClause}`;
 
-    const [result] = await this.pool!.execute<ResultSetHeader>(sql, Object.values as any(where));
+    const [result] = await this.pool!.execute<ResultSetHeader>(sql, Object.values (where)as any);
 
     console.log(`[MySQL] Lignes supprimées dans ${table}: ${result.affectedRows}`);
 
@@ -209,7 +209,7 @@ export class MysqlHandler implements Handler {
       return { success: false, error: 'Query SQL requise pour opération query' };
     }
 
-    const [rows] = await this.pool!.execute<RowDataPacket[]>(params.query, params.values as any || []);
+    const [rows] = await this.pool!.execute<RowDataPacket[]>(params.query, params.values || [] as any);
 
     console.log(`[MySQL] Query exécutée: ${rows.length} résultats`);
 
