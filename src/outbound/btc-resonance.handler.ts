@@ -1,107 +1,61 @@
-import { logger } from '../persistence/logger.js';
-import type { Handler, HandlerResult, HandlerConfig } from './handler.interface.js';
+cat << 'EOF' > src/outbound/btc-resonance.handler.ts
+import { Handler } from './handler.interface.js';
+import axios from 'axios';
 
 export class BtcResonanceHandler implements Handler {
-  readonly name = 'BTC Resonance Handler';
-  readonly type = 'btc-resonance'; // YAML 檔案呼叫時對應的類型名稱
+  readonly type = "btc-resonance-analyzer";
+  readonly name = "BTC Resonance Analyzer";
 
-  async initialize(): Promise<void> {
-    logger.info('BTC resonance handler initialized');
+  async initialize(): Promise<void> {}
+  async shutdown(): Promise<void> {}
+
+  private async getMA(symbol: string, interval: string): Promise<{price: number, ma: number}> {
+    const res = await axios.get(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=21`);
+    const prices = res.data.map((k: any) => parseFloat(k[4]));
+    const currentPrice = prices[prices.length - 1];
+    const ma20 = prices.slice(-21, -1).reduce((a: number, b: number) => a + b, 0) / 20;
+    return { price: currentPrice, ma: ma20 };
   }
 
-  async execute(config: HandlerConfig, _context: Record<string, unknown>): Promise<HandlerResult> {
+  async execute(trigger: any, params: any): Promise<any> {
+    console.log(">>> [TRIGGERED] 幣安數據抓取中...");
     try {
-      const intervals = ['15m', '1h', '4h', '1d', '1w'];
+      const [m15, h1, h4, d1, w1] = await Promise.all([
+        this.getMA('BTCUSDT', '15m'),
+        this.getMA('BTCUSDT', '1h'),
+        this.getMA('BTCUSDT', '4h'),
+        this.getMA('BTCUSDT', '1d'),
+        this.getMA('BTCUSDT', '1w')
+      ]);
+
+      const getStatus = (p: number, m: number) => p > m ? "🟢 Bullish" : "🟡 Bearish";
+      const checkScore = (p: number, m: number) => p > m ? 1 : 0;
       
-      // 執行分析邏輯，抓取包含 MA 數值的完整資料
-      const results = await Promise.all(intervals.map(itv => this.checkTrend(itv)));
+      const resonance = checkScore(m15.price, m15.ma) + checkScore(h1.price, h1.ma) + 
+                        checkScore(h4.price, h4.ma) + checkScore(d1.price, d1.ma);
 
-      let bodyText = "";
-      let resonanceScore = 0;
-      let weeklyText = "";
+      const now = new Date();
+      const tpe = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour12: false });
+      const nyc = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour12: false });
 
-      // 千分位與小數點格式化工具
-      const fmt = (num: number) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const content = `------------------------------------------------------\n` +
+                      `🤖 JASON'S BOT\n` +
+                      `------------------------------------------------------\n` +
+                      `15m $ ${m15.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${m15.ma.toFixed(2)}] ${getStatus(m15.price, m15.ma)}\n` +
+                      `1h $ ${h1.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${h1.ma.toFixed(2)}] ${getStatus(h1.price, h1.ma)}\n` +
+                      `4h $ ${h4.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${h4.ma.toFixed(2)}] ${getStatus(h4.price, h4.ma)}\n` +
+                      `1d $ ${d1.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${d1.ma.toFixed(2)}] ${getStatus(d1.price, d1.ma)}\n\n` +
+                      `🏛️ Weekly [MA: ${w1.ma.toFixed(2)}] : ${getStatus(w1.price, w1.ma).toUpperCase()}\n` +
+                      `------------------------------------------------------\n` +
+                      `[TPE: ${tpe} | NYC: ${nyc}] Broadcast Success\n` +
+                      `🔥 Resonance: ${resonance}/4`;
 
-      results.forEach(r => {
-        if (r.itv === '1w') {
-          // 週線的排版 (根據你的截圖，大寫且有神廟 icon)
-          const icon = r.isBullish ? "🟢 BULLISH" : "🟡 BEARISH";
-          weeklyText = `🏛️ Weekly [MA: ${fmt(r.ma)}]: ${icon}`;
-        } else {
-          // 4 個短中長時區的計算與排版
-          if (r.isBullish) resonanceScore++;
-          const icon = r.isBullish ? "🟢 Bullish" : "🟡 Bearish";
-          // padEnd(3, ' ') 讓 1h, 1d 後面自動補空白，對齊 15m
-          bodyText += `${r.itv.padEnd(3, ' ')} $ ${fmt(r.price)} [MA: ${fmt(r.ma)}] ${icon}\n`;
-        }
-      });
-
-      // 取得台北與紐約時間
-      const getFormattedTime = (timeZone: string) => {
-        return new Intl.DateTimeFormat('en-US', {
-          timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-        }).format(new Date());
-      };
-
-      // 終極大合併！完全 100% 複製你的設計圖
-      const finalPost = `----------------------------------------
-🤖 JASON'S BOT
-----------------------------------------
-${bodyText.trimEnd()}
-
-${weeklyText}
-----------------------------------------
-[TPE: ${getFormattedTime('Asia/Taipei')} | NYC: ${getFormattedTime('America/New_York')}] Broadcast Success
-🔥 Resonance: ${resonanceScore}/4`;
-
-      logger.info({ score: resonanceScore }, 'BTC resonance analysis completed');
-
-      return {
-        success: true,
-        data: {
-          // 我們把排版好的內容塞進這三個最常見的變數名，確保下一個 Nostr 發文節點一定抓得到
-          content: finalPost,
-          text: finalPost,
-          message: finalPost,
-          resonanceScore: resonanceScore,
-          status: this.getStatusText(resonanceScore)
-        }
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error({ error: errorMessage }, 'Failed to execute BTC resonance analysis');
-      return { success: false, error: errorMessage };
+      console.log(">>> [SUCCESS] 分析完成，內容準備發送！");
+      return { success: true, data: { content } };
+    } catch (error: any) {
+      console.error(">>> [ERROR] 抓取失敗:", error.message);
+      return { success: false, error: error.message };
     }
   }
-
-  private async checkTrend(interval: string) {
-    // 限制 limit=20，因為計算 MA20 必須要有準確的 20 根 K 線
-    const response = await fetch(
-      `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=20`
-    );
-    const data = await response.json() as any[][];
-    const prices = data.map((k: any[]) => parseFloat(k[4] as string));
-    const currentPrice = prices[prices.length - 1]!;
-    const ma20 = prices.reduce((a, b) => a + b, 0) / prices.length;
-
-    // 將 ma 也回傳出去，這樣排版系統才抓得到數字
-    return {
-      itv: interval,
-      price: currentPrice,
-      ma: ma20,
-      isBullish: currentPrice > ma20
-    };
-  }
-
-  private getStatusText(score: number): string {
-    if (score >= 4) return "Strong Bullish (Long)";
-    if (score === 3) return "Bullish Bias";
-    if (score === 2) return "Neutral / Choppy";
-    return "Bearish (Short)";
-  }
-
-  async shutdown(): Promise<void> {
-    logger.info('BTC resonance handler shut down');
-  }
 }
+EOF
