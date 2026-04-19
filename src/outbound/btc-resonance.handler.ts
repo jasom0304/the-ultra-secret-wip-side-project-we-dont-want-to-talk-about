@@ -1,5 +1,4 @@
 async execute(trigger: any, params: any): Promise<any> {
-    console.log(">>> [TRIGGERED] 執行排版優化抓取...");
     try {
       const [m15, h1, h4, d1, w1] = await Promise.all([
         this.getMA('BTCUSDT', '15m'),
@@ -9,36 +8,34 @@ async execute(trigger: any, params: any): Promise<any> {
         this.getMA('BTCUSDT', '1w')
       ]);
 
-      // 格式化函數：讓價格固定長度，不足補空格
-      const fmtPrice = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).padStart(10, ' ');
-      const fmtMA = (m: number) => m.toFixed(1).padStart(9, ' ');
-      const getStatus = (p: number, m: number) => p > m ? "Bullish 🟢" : "Bearish 🟡";
+      // 核心對齊邏輯：價格固定 10 寬度，MA 固定 10 寬度
+      const fixP = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).padStart(10, ' ');
+      const fixM = (m: number) => m.toFixed(1).padStart(10, ' ');
+      const fixS = (p: number, m: number) => p > m ? "BULL [O]" : "BEAR [X]";
       
-      const checkScore = (p: number, m: number) => p > m ? 1 : 0;
-      const resonance = checkScore(m15.price, m15.ma) + checkScore(h1.price, h1.ma) + 
-                        checkScore(h4.price, h4.ma) + checkScore(d1.price, d1.ma);
-
+      const resonance = [m15, h1, h4, d1].filter(x => x.price > x.ma).length;
       const now = new Date();
       const tpe = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour12: false });
       const nyc = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour12: false });
 
-      const content = `----------------------------------------------\n` +
-                      `🤖  JASON'S BTC RESONANCE\n` +
-                      `----------------------------------------------\n` +
-                      `15m | $${fmtPrice(m15.price)} | MA:${fmtMA(m15.ma)} | ${getStatus(m15.price, m15.ma)}\n` +
-                      `1h  | $${fmtPrice(h1.price)} | MA:${fmtMA(h1.ma)} | ${getStatus(h1.price, h1.ma)}\n` +
-                      `4h  | $${fmtPrice(h4.price)} | MA:${fmtMA(h4.ma)} | ${getStatus(h4.price, h4.ma)}\n` +
-                      `1d  | $${fmtPrice(d1.price)} | MA:${fmtMA(d1.ma)} | ${getStatus(d1.price, d1.ma)}\n\n` +
-                      `🏛️  Weekly MA: ${w1.ma.toFixed(1)} -> ${w1.price > w1.ma ? 'BULLISH' : 'BEARISH'}\n` +
-                      `----------------------------------------------\n` +
-                      `🔥  Resonance Score: ${resonance} / 4\n` +
-                      `⏰  [TPE: ${tpe} | NYC: ${nyc}]\n` +
-                      `----------------------------------------------`;
+      // 使用 ASCII 網格確保在手機上也不易塌陷
+      const content = 
+`[ JASON'S BTC RESONANCE MONITOR ]
+-----------------------------------------
+TIME | PRICE      | MA20       | STATUS
+-----------------------------------------
+15m  |${fixP(m15.price)} |${fixM(m15.ma)} | ${fixS(m15.price, m15.ma)}
+01h  |${fixP(h1.price)} |${fixM(h1.ma)} | ${fixS(h1.price, h1.ma)}
+04h  |${fixP(h4.price)} |${fixM(h4.ma)} | ${fixS(h4.price, h4.ma)}
+24h  |${fixP(d1.price)} |${fixM(d1.ma)} | ${fixS(d1.price, d1.ma)}
+-----------------------------------------
+WEEK | MA: ${w1.ma.toFixed(1)} -> ${w1.price > w1.ma ? 'BULLISH' : 'BEARISH'}
+-----------------------------------------
+SCORE: ${resonance}/4 | TPE: ${tpe}
+-----------------------------------------`;
 
-      console.log(">>> [SUCCESS] 對齊版內容已生成");
       return { success: true, data: { content } };
     } catch (error: any) {
-      console.error(">>> [ERROR]", error.message);
       return { success: false, error: error.message };
     }
   }
