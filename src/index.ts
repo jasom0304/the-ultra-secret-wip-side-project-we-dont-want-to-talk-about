@@ -612,27 +612,27 @@ async function initializeHandlers(
   }
 
   // MySQL Handler (optional, needs config)
-  try {
-    interface MysqlConfigFile {
-      mysql?: {
-        enabled?: boolean;
-        host?: string;
-        port?: number;
-        user?: string;
-        password?: string;
-        database?: string;
-        connection_limit?: number;
-        default_table?: string;
-      };
-    }
-    const mysqlConfig = await loadHandlerConfig<MysqlConfigFile>('mysql');
-    if (
-      mysqlConfig?.mysql?.enabled !== false &&
-      mysqlConfig?.mysql?.host &&
-      mysqlConfig?.mysql?.user &&
-      mysqlConfig?.mysql?.password &&
-      mysqlConfig?.mysql?.database
-    ) {
+  //try {
+    ///interface MysqlConfigFile {
+      //mysql?: {
+       // enabled?: boolean;
+      //  host?: string;
+       // port?: number;
+      //  user?: string;
+      //  password?: string;
+      //  database?: string;
+      //  connection_limit?: number;
+      //  default_table?: string;
+     // };
+   // }
+    //const mysqlConfig = await loadHandlerConfig<MysqlConfigFile>('mysql');
+    //if (
+    //  mysqlConfig?.mysql?.enabled !== false &&
+    //  mysqlConfig?.mysql?.host &&
+     // mysqlConfig?.mysql?.user &&
+    //  mysqlConfig?.mysql?.password &&
+    //  mysqlConfig?.mysql?.database
+   // ) {
       //state.handlers.mysql = new MysqlHandler({
         //enabled: true,
         //host: mysqlConfig.mysql.host,
