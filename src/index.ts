@@ -96,7 +96,7 @@ interface AppState {
     ftp?: FtpHandler;
     sftp?: SftpHandler;
     mongodb?: MongoDbHandler;
-    mysql?: MysqlHandler;
+    //mysql?: MysqlHandler;
     postgres?: PostgresHandler;
     redis?: RedisHandler;
     s3?: S3Handler;
@@ -633,16 +633,16 @@ async function initializeHandlers(
       mysqlConfig?.mysql?.password &&
       mysqlConfig?.mysql?.database
     ) {
-      state.handlers.mysql = new MysqlHandler({
-        enabled: true,
-        host: mysqlConfig.mysql.host,
-        port: mysqlConfig.mysql.port || 3306,
-        user: mysqlConfig.mysql.user,
-        password: mysqlConfig.mysql.password,
-        database: mysqlConfig.mysql.database,
-        connection_limit: mysqlConfig.mysql.connection_limit || 10,
-        default_table: mysqlConfig.mysql.default_table || 'nostr_events',
-      });
+      //state.handlers.mysql = new MysqlHandler({
+        //enabled: true,
+        //host: mysqlConfig.mysql.host,
+        //port: mysqlConfig.mysql.port || 3306,
+        //user: mysqlConfig.mysql.user,
+       // password: mysqlConfig.mysql.password,
+        //database: mysqlConfig.mysql.database,
+       // connection_limit: mysqlConfig.mysql.connection_limit || 10,
+        //default_table: mysqlConfig.mysql.default_table || 'nostr_events',
+     // });
       await state.handlers.mysql.initialize();
       state.workflowEngine.registerHandler('mysql', state.handlers.mysql);
       logger.info('MySQL handler enabled');
