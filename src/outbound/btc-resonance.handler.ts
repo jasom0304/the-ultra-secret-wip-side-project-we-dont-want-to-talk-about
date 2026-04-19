@@ -4,7 +4,6 @@ import axios from 'axios';
 export class BtcResonanceHandler implements Handler {
   readonly type = "btc-resonance-analyzer";
   readonly name = "BTC Resonance Analyzer";
-
   async initialize(): Promise<void> {}
   async shutdown(): Promise<void> {}
 
@@ -17,6 +16,7 @@ export class BtcResonanceHandler implements Handler {
   }
 
   async execute(trigger: any, params: any): Promise<any> {
+    console.log(">>> [TRIGGERED] 正在抓取幣安數據...");
     try {
       const [m15, h1, h4, d1, w1] = await Promise.all([
         this.getMA('BTCUSDT', '15m'),
@@ -38,17 +38,19 @@ export class BtcResonanceHandler implements Handler {
       const content = `------------------------------------------------------\n` +
                       `🤖 JASON'S BOT\n` +
                       `------------------------------------------------------\n` +
-                      `15m $ ${m15.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${m15.ma.toFixed(2)}] ${getStatus(m15.price, m15.ma)}\n` +
-                      `1h $ ${h1.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${h1.ma.toFixed(2)}] ${getStatus(h1.price, h1.ma)}\n` +
-                      `4h $ ${h4.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${h4.ma.toFixed(2)}] ${getStatus(h4.price, h4.ma)}\n` +
-                      `1d $ ${d1.price.toLocaleString('en-US', {minimumFractionDigits: 2})} [MA: ${d1.ma.toFixed(2)}] ${getStatus(d1.price, d1.ma)}\n\n` +
+                      `15m $ ${m15.price.toLocaleString()} [MA: ${m15.ma.toFixed(2)}] ${getStatus(m15.price, m15.ma)}\n` +
+                      `1h $ ${h1.price.toLocaleString()} [MA: ${h1.ma.toFixed(2)}] ${getStatus(h1.price, h1.ma)}\n` +
+                      `4h $ ${h4.price.toLocaleString()} [MA: ${h4.ma.toFixed(2)}] ${getStatus(h4.price, h4.ma)}\n` +
+                      `1d $ ${d1.price.toLocaleString()} [MA: ${d1.ma.toFixed(2)}] ${getStatus(d1.price, d1.ma)}\n\n` +
                       `🏛️ Weekly [MA: ${w1.ma.toFixed(2)}] : ${getStatus(w1.price, w1.ma).toUpperCase()}\n` +
                       `------------------------------------------------------\n` +
                       `[TPE: ${tpe} | NYC: ${nyc}] Broadcast Success\n` +
                       `🔥 Resonance: ${resonance}/4`;
 
+      console.log(">>> [SUCCESS] 分析完成");
       return { success: true, data: { content } };
     } catch (error: any) {
+      console.error(">>> [ERROR] Handler 失敗:", error.message);
       return { success: false, error: error.message };
     }
   }
