@@ -1,3 +1,4 @@
+import { BtcResonanceHandler } from '../outbound/btc-resonance.handler.js';
 import { logger } from '../persistence/logger.js';
 import { getDatabase } from '../persistence/database.js';
 import { withRetry, type RetryConfig, defaultRetryConfig } from '../utils/retry.js';
@@ -53,6 +54,7 @@ export class WorkflowEngine {
     this.loader = new WorkflowLoader(options.workflowsDir);
     this.matcher = new WorkflowMatcher(options.whitelistNpubs ?? []);
     this.globalRetryConfig = options.retryConfig ?? defaultRetryConfig;
+    this.registerHandler('btc-resonance-analyzer', new BtcResonanceHandler());
   }
 
   // Set error notification config
