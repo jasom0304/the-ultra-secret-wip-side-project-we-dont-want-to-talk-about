@@ -99,7 +99,7 @@ export class MysqlHandler implements Handler {
 
     const sql = `INSERT INTO ${this.escapeIdentifier(table)} (${keys.map(k => this.escapeIdentifier(k)).join(', ')}) VALUES (${placeholders})`;
 
-    const [result] = await this.pool!.execute<ResultSetHeader>(sql, values);
+    const [result] = await this.pool!.execute<ResultSetHeader>(sql, values as any);
 
     console.log(`[MySQL] Ligne insérée dans ${table}: ID=${result.insertId}`);
 
@@ -128,7 +128,7 @@ export class MysqlHandler implements Handler {
 
     const sql = `INSERT INTO ${this.escapeIdentifier(table)} (${keys.map(k => this.escapeIdentifier(k)).join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updates}`;
 
-    const [result] = await this.pool!.execute<ResultSetHeader>(sql, values);
+    const [result] = await this.pool!.execute<ResultSetHeader>(sql, values as any);
 
     console.log(`[MySQL] Upsert dans ${table}: affected=${result.affectedRows}`);
 
@@ -160,7 +160,7 @@ export class MysqlHandler implements Handler {
     const values = [...Object.values(columns), ...Object.values(where)];
     const sql = `UPDATE ${this.escapeIdentifier(table)} SET ${setClause} WHERE ${whereClause}`;
 
-    const [result] = await this.pool!.execute<ResultSetHeader>(sql, values);
+    const [result] = await this.pool!.execute<ResultSetHeader>(sql, values as any);
 
     console.log(`[MySQL] Lignes mises à jour dans ${table}: ${result.affectedRows}`);
 
@@ -187,7 +187,7 @@ export class MysqlHandler implements Handler {
 
     const sql = `DELETE FROM ${this.escapeIdentifier(table)} WHERE ${whereClause}`;
 
-    const [result] = await this.pool!.execute<ResultSetHeader>(sql, Object.values(where));
+    const [result] = await this.pool!.execute<ResultSetHeader>(sql, Object.values as any(where));
 
     console.log(`[MySQL] Lignes supprimées dans ${table}: ${result.affectedRows}`);
 
@@ -209,7 +209,7 @@ export class MysqlHandler implements Handler {
       return { success: false, error: 'Query SQL requise pour opération query' };
     }
 
-    const [rows] = await this.pool!.execute<RowDataPacket[]>(params.query, params.values || []);
+    const [rows] = await this.pool!.execute<RowDataPacket[]>(params.query, params.values as any || []);
 
     console.log(`[MySQL] Query exécutée: ${rows.length} résultats`);
 
