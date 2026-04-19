@@ -45,9 +45,9 @@ export class BtcResonanceHandler implements Handler {
 TIME | PRICE      | MA20      | STATUS
 -----|------------|-----------|---------
 15m  | ${fixP(m15.price)} | ${fixM(m15.ma)} | ${getStatus(m15.price, m15.ma)}
-01h  | ${fixP(h1.price)} | ${fixM(h1.ma)} | ${getStatus(h1.price, h1.ma)}
-04h  | ${fixP(h4.price)} | ${fixM(h4.ma)} | ${getStatus(h4.price, h4.ma)}
-24h  | ${fixP(d1.price)} | ${fixM(d1.ma)} | ${getStatus(d1.price, d1.ma)}
+01h  | ${fixP(h1.price)} |  ${fixM(h1.ma)} |  ${getStatus(h1.price, h1.ma)}
+04h  | ${fixP(h4.price)} |  ${fixM(h4.ma)} |  ${getStatus(h4.price, h4.ma)}
+24h  | ${fixP(d1.price)} |  ${fixM(d1.ma)} |  ${getStatus(d1.price, d1.ma)}
 -----|------------|-----------|---------
 WKL  | MA: ${w1.ma.toFixed(1).padStart(7, ' ')} | SCORE: ${resonance}/4  | ${w1.price > w1.ma ? 'UP' : 'DN'}
 \`\`\`
