@@ -33,7 +33,7 @@ import { FileHandler } from './outbound/file.handler.js';
 import { FtpHandler } from './outbound/ftp.handler.js';
 import { SftpHandler } from './outbound/sftp.handler.js';
 import { MongoDbHandler } from './outbound/mongodb.handler.js';
-import { MysqlHandler } from './outbound/mysql.handler.js';
+//import { MysqlHandler } from './outbound/mysql.handler.js';
 import { PostgresHandler } from './outbound/postgres.handler.js';
 import { RedisHandler } from './outbound/redis.handler.js';
 import { S3Handler } from './outbound/s3.handler.js';
