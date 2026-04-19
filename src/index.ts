@@ -643,13 +643,13 @@ async function initializeHandlers(
        // connection_limit: mysqlConfig.mysql.connection_limit || 10,
         //default_table: mysqlConfig.mysql.default_table || 'nostr_events',
      // });
-      await state.handlers.mysql.initialize();
-      state.workflowEngine.registerHandler('mysql', state.handlers.mysql);
-      logger.info('MySQL handler enabled');
-    }
-  } catch (error) {
-    logger.debug('MySQL handler not configured, skipping');
-  }
+      //await state.handlers.mysql.initialize();
+      //state.workflowEngine.registerHandler('mysql', state.handlers.mysql);
+      //logger.info('MySQL handler enabled');
+   // }
+  //} catch (error) {
+  //  logger.debug('MySQL handler not configured, skipping');
+ // }
 
   // PostgreSQL Handler (optional, needs config)
   try {
@@ -2064,9 +2064,9 @@ async function shutdown(): Promise<void> {
     if (appState.handlers.mongodb) {
       await appState.handlers.mongodb.shutdown();
     }
-    if (appState.handlers.mysql) {
-      await appState.handlers.mysql.shutdown();
-    }
+    //if (appState.handlers.mysql) {
+      //await appState.handlers.mysql.shutdown();
+    //}
     if (appState.handlers.postgres) {
       await appState.handlers.postgres.shutdown();
     }
