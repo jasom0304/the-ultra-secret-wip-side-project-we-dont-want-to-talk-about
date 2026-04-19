@@ -1,4 +1,3 @@
-cat << 'EOF' > src/outbound/btc-resonance.handler.ts
 import { Handler } from './handler.interface.js';
 import axios from 'axios';
 
@@ -18,7 +17,6 @@ export class BtcResonanceHandler implements Handler {
   }
 
   async execute(trigger: any, params: any): Promise<any> {
-    console.log(">>> [TRIGGERED] 幣安數據抓取中...");
     try {
       const [m15, h1, h4, d1, w1] = await Promise.all([
         this.getMA('BTCUSDT', '15m'),
@@ -30,7 +28,6 @@ export class BtcResonanceHandler implements Handler {
 
       const getStatus = (p: number, m: number) => p > m ? "🟢 Bullish" : "🟡 Bearish";
       const checkScore = (p: number, m: number) => p > m ? 1 : 0;
-      
       const resonance = checkScore(m15.price, m15.ma) + checkScore(h1.price, h1.ma) + 
                         checkScore(h4.price, h4.ma) + checkScore(d1.price, d1.ma);
 
@@ -50,12 +47,9 @@ export class BtcResonanceHandler implements Handler {
                       `[TPE: ${tpe} | NYC: ${nyc}] Broadcast Success\n` +
                       `🔥 Resonance: ${resonance}/4`;
 
-      console.log(">>> [SUCCESS] 分析完成，內容準備發送！");
       return { success: true, data: { content } };
     } catch (error: any) {
-      console.error(">>> [ERROR] 抓取失敗:", error.message);
       return { success: false, error: error.message };
     }
   }
 }
-EOF
