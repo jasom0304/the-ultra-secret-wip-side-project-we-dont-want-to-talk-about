@@ -3,7 +3,7 @@ import type { Handler, HandlerResult, HandlerConfig } from './handler.interface.
 
 export class BtcResonanceHandler implements Handler {
   readonly name = 'BTC Resonance Handler';
-  readonly type = 'btc-resonance'; // YAML 檔案中呼叫時對應的類型名稱
+  readonly type = 'btc-resonance'; // YAML 檔案呼叫時對應的類型名稱
 
   async initialize(): Promise<void> {
     logger.info('BTC resonance handler initialized');
