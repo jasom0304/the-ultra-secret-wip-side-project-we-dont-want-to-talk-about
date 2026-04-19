@@ -1,0 +1,21 @@
+{
+  "pipelinostr": {
+    "logLevel": "info",
+    "workflowsPath": "./config/workflows",
+    "handlersPath": "./dist/outbound"
+  },
+  "whitelist": [],
+  "relays": [
+    "wss://relay.damus.io",
+    "wss://nos.lol"
+  ],
+  "logging": {
+    "level": "info"
+  },
+  "nostr": {
+    "secretKey": "0f3771ea043ed1c27cf94a13cb000083414c6bb5b822b8dc5d03d9ef0a1c1f65"
+  },
+  "database": {
+    "path": "./data/pipelinostr.db"
+  }
+}
