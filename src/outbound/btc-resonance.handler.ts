@@ -38,7 +38,7 @@ export class BtcResonanceHandler implements Handler {
       const tpe = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour12: false });
       const nyc = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour12: false });
 
-      // --- 這裡完全照你的圖片：虛線、Emoji、每一行都有 🟢/🟡 ---
+      // --- 完全還原圖片格式：虛線、Emoji、排版 ---
       const content = 
 `----------------------------------------------------------
 🤖 JASON'S BOT
