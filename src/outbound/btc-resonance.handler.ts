@@ -58,6 +58,16 @@ WKL  | MA: ${w1.ma.toFixed(1).padStart(7, ' ')} | SCORE: ${resonance}/4  | ${w1.
       return { success: true, data: { content } };
     } catch (error: any) {
       console.error(">>> [ERROR] 分析失敗:", error.message);
+      const trend_signal = resonance >= 3 ? "🟢" : "🟡"; // 3 個以上看漲就噴綠燈
+
+      console.log(`>>> [SUCCESS] 內容已生成，訊號為: ${trend_signal}`);
+      return { 
+        success: true, 
+        data: { 
+          content, 
+          trend_signal // 這裡一定要傳出去！
+        } 
+      };
       return { success: false, error: error.message };
     }
   }
