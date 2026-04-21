@@ -1,3 +1,4 @@
+cat << 'EOF' > src/outbound/btc-resonance.handler.ts
 import { Handler } from './handler.interface.js';
 import axios from 'axios';
 
@@ -12,7 +13,6 @@ export class BtcResonanceHandler implements Handler {
     const res = await axios.get(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=21`);
     const prices = res.data.map((k: any) => parseFloat(k[4]));
     const currentPrice = prices[prices.length - 1];
-    // 計算前 20 根 K 線的 MA20
     const ma20 = prices.slice(-21, -1).reduce((a: number, b: number) => a + b, 0) / 20;
     return { price: currentPrice, ma: ma20 };
   }
@@ -28,17 +28,19 @@ export class BtcResonanceHandler implements Handler {
         this.getMA('BTCUSDT', '1w')
       ]);
 
-      // --- 對齊邏輯工具 ---
       const fixP = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).padStart(10, ' ');
       const fixM = (m: number) => m.toFixed(1).padStart(9, ' ');
       const getStatus = (p: number, m: number) => p > m ? "Bullish" : "Bearish";
       
       const resonance = [m15, h1, h4, d1].filter(x => x.price > x.ma).length;
+      
+      // --- 核心邏輯修正：將訊號產出放在成功路徑 ---
+      const trend_signal = resonance >= 3 ? "🟢" : "🟡";
+      
       const now = new Date();
       const tpe = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour12: false });
       const nyc = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour12: false });
 
-      // --- 核心排版內容 (使用 Markdown Code Block 確保等寬對齊) ---
       const content = 
 `🤖 JASON'S BTC RESONANCE
 \`\`\`
@@ -52,23 +54,15 @@ TIME | PRICE      | MA20      | STATUS
 WKL  | MA: ${w1.ma.toFixed(1).padStart(7, ' ')} | SCORE: ${resonance}/4  | ${w1.price > w1.ma ? 'UP' : 'DN'}
 \`\`\`
 ⏰ TPE: ${tpe} | NYC: ${nyc}
-🔥 Broadcast Success`;
+🔥 Signal: ${trend_signal}`;
 
-      console.log(">>> [SUCCESS] 內容已生成，對齊補丁已套用");
-      return { success: true, data: { content } };
+      console.log(`>>> [SUCCESS] 內容生成完畢，訊號為: ${trend_signal}`);
+      return { success: true, data: { content, trend_signal } };
+      
     } catch (error: any) {
       console.error(">>> [ERROR] 分析失敗:", error.message);
-      const trend_signal = resonance >= 3 ? "🟢" : "🟡"; // 3 個以上看漲就噴綠燈
-
-      console.log(`>>> [SUCCESS] 內容已生成，訊號為: ${trend_signal}`);
-      return { 
-        success: true, 
-        data: { 
-          content, 
-          trend_signal // 這裡一定要傳出去！
-        } 
-      };
       return { success: false, error: error.message };
     }
   }
 }
+EOF
