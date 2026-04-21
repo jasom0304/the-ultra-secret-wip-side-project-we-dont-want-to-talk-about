@@ -19,11 +19,8 @@ export class BtcResonanceHandler implements Handler {
   async execute(trigger: any, params: any): Promise<any> {
     try {
       const [m15, h1, h4, d1, w1] = await Promise.all([
-        this.getMA('BTCUSDT', '15m'),
-        this.getMA('BTCUSDT', '1h'),
-        this.getMA('BTCUSDT', '4h'),
-        this.getMA('BTCUSDT', '1d'),
-        this.getMA('BTCUSDT', '1w')
+        this.getMA('BTCUSDT', '15m'), this.getMA('BTCUSDT', '1h'),
+        this.getMA('BTCUSDT', '4h'), this.getMA('BTCUSDT', '1d'), this.getMA('BTCUSDT', '1w')
       ]);
 
       const formatP = (p: number) => p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -36,7 +33,6 @@ export class BtcResonanceHandler implements Handler {
       const tpe = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour12: false });
       const nyc = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour12: false });
 
-      // --- 這是你最原始、圖片上的極致排版格式 ---
       const content = 
 `----------------------------------------------------------
 🤖 JASON'S BOT
@@ -51,12 +47,7 @@ export class BtcResonanceHandler implements Handler {
 [TPE: ${tpe} | NYC: ${nyc}] Broadcast Success
 🔥 Resonance: ${resonance}/4`;
 
-      // 關鍵：將內容放在根目錄，確保 YAML 裡的 {{ actions.analyze.response.content }} 有效
-      return { 
-        success: true, 
-        content: content 
-      };
-
+      return { success: true, content: content };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
