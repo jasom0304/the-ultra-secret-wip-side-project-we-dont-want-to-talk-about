@@ -32,13 +32,11 @@ export class BtcResonanceHandler implements Handler {
       const getStatus = (p: number, m: number) => p > m ? "Bullish" : "Bearish";
       
       const resonance = [m15, h1, h4, d1].filter(x => x.price > x.ma).length;
-      const trend_signal = resonance >= 3 ? "🟢" : "🟡";
-
       const now = new Date();
       const tpe = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour12: false });
       const nyc = now.toLocaleTimeString('en-GB', { timeZone: 'America/New_York', hour12: false });
 
-      // --- 完全還原圖片格式：虛線、Emoji、排版 ---
+      // --- 這是你最原始、圖片上的極致排版格式 ---
       const content = 
 `----------------------------------------------------------
 🤖 JASON'S BOT
@@ -53,7 +51,12 @@ export class BtcResonanceHandler implements Handler {
 [TPE: ${tpe} | NYC: ${nyc}] Broadcast Success
 🔥 Resonance: ${resonance}/4`;
 
-      return { success: true, data: { content, trend_signal } };
+      // 關鍵：將內容放在根目錄，確保 YAML 裡的 {{ actions.analyze.response.content }} 有效
+      return { 
+        success: true, 
+        content: content 
+      };
+
     } catch (error: any) {
       return { success: false, error: error.message };
     }
